@@ -1,0 +1,32 @@
+# Standalone transformations config for: python main.py transform --config transform.yaml
+# These transformations will be applied to cached data from extract step.
+
+transformations:
+  - type: "clean_missing"
+    strategy: "fill"
+    drop_duplicates: true
+
+  - type: "normalize_columns"
+    mapping:
+      "Nama": "name"
+      "Harga": "price"
+      "Jumlah": "quantity"
+      "Tanggal": "date"
+      "Kategori": "category"
+      "Diskon": "discount"
+    type_casts:
+      price: "float"
+      quantity: "int"
+      date: "datetime"
+    drop_unmapped: false
+
+  - type: "add_column"
+    name: "total"
+    formula: "price * quantity"
+
+  - type: "add_column"
+    name: "discounted_total"
+    formula: "total * (1 - discount / 100)"
+
+  - type: "filter"
+    condition: "price > 0"

@@ -1,0 +1,81 @@
+# =============================================================================
+# data-pipeline-tool — Example Configuration
+# =============================================================================
+# Run:  python main.py --config config.yaml
+# =============================================================================
+
+pipeline:
+  name: "Sales Data Processing"
+
+  # --- Source ---
+  # Supports: local file (csv/json), database (sqlite), or HTTP API
+  source:
+    path: "sample_data/sales.csv"
+    # type: "csv"              # auto-detected from extension
+    # delimiter: ","
+    # encoding: "utf-8"
+    # parse_dates: ["date"]
+
+  # --- Transformations (applied in order) ---
+  transformations:
+    - type: "clean_missing"
+      strategy: "fill"            # options: fill | drop | ffill | bfill
+      fill_value: null            # null = auto: numeric → mean, text → mode
+      drop_duplicates: true
+
+    - type: "normalize_columns"
+      mapping:                    # rename columns to standard names
+        "Nama": "name"
+        "Harga": "price"
+        "Jumlah": "quantity"
+        "Tanggal": "date"
+        "Kategori": "category"
+        "Diskon": "discount"
+      type_casts:                 # cast to proper types
+        price: "float"
+        quantity: "int"
+        date: "datetime"
+      drop_unmapped: false
+      lowercase_columns: false
+
+    - type: "add_column"
+      name: "total"
+      formula: "price * quantity"
+
+    - type: "add_column"
+      name: "discounted_total"
+      formula: "total * (1 - discount / 100)"
+
+    - type: "filter"
+      condition: "price > 0"
+      # Multiple conditions:
+      # conditions:
+      #   - "price > 0"
+      #   - "quantity >= 1"
+      # mode: "and"
+
+  # --- Output ---
+  output:
+    format: "excel"               # options: excel | csv | json | sqlite
+    path: "output/processed_sales.xlsx"
+    sheet_name: "SalesReport"
+    index: false                  # don't write row numbers
+
+# =============================================================================
+# Alternate: API source example
+# =============================================================================
+# pipeline:
+#   name: "API Data Import"
+#   source:
+#     url: "https://api.example.com/v1/sales"
+#     headers:
+#       Authorization: "Bearer ${API_TOKEN}"
+#     params:
+#       limit: 1000
+#     data_key: "results"
+#   transformations:
+#     - type: "clean_missing"
+#       strategy: "drop"
+#   output:
+#     format: "csv"
+#     path: "output/api_data.csv"
